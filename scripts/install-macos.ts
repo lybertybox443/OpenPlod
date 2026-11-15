@@ -6,7 +6,7 @@ import { homedir } from 'node:os';
 
 const repo = resolve(import.meta.dir, '..');
 const destination = '/Applications/OpenPlod.app';
-const built = join(repo, 'src-tauri/target/release/bundle/macos/OpenPlod.app');
+const buildBundle = join(repo, 'src-tauri/target/release/bundle/macos/OpenPlod.app');
 const register = '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
 const bundleId = 'com.openplod.vault';
 const command = (name: string, args: string[]) => execFileSync(name, args, { cwd: repo, stdio: 'inherit' });
@@ -37,8 +37,9 @@ function unregister(path: string) {
 const hash = (file: string) => createHash('sha256').update(readFileSync(file)).digest('hex');
 requireStopped();
 if (build) command('bun', ['run', 'tauri', 'build', '--bundles', 'app']);
+// The target directory may live outside the checkout. The bundle itself must be a real directory.
+const built = join(realpathSync(dirname(buildBundle)), basename(buildBundle));
 requireBundle(built);
-command('codesign', ['--force', '--deep', '--sign', '-', built]);
 command('codesign', ['--verify', '--deep', '--strict', built]);
 const copies = [...new Set([join(repo, 'src-tauri/target/debug/bundle/macos/OpenPlod.app'), ...extraCopies, built])]
   .filter(path => path !== destination && existsSync(path));
